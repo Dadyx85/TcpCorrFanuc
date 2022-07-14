@@ -1,0 +1,37 @@
+* Dictionary Form File: tcps.ftx
+*
+* Generate tcps.kl which should be included in your KAREL program
+.kl tcps
+.form
+$-,tcps
+&home &reverse "TCP check setup" &standard &new_line
+&fg_dflt&new_line@3,4 ". Number of X condition: "@3,40 "-%3d(1,100)"&fg_dflt&fg_blue"|*******************************************************"&fg_dflt&new_line
+&fg_dflt@4,4 ". Number of XY condition: "@4,40 "-%3d(1,100)"&fg_dflt&fg_blue"|*******************************************************"&fg_dflt&new_line
+&fg_dflt@5,4 ". Digital input for X direction: "@5,40 "-%4d(1,2048)"&fg_dflt&fg_blue"|*******************************************************"&fg_dflt&new_line
+&fg_dflt@6,4". Digital input for XY direction: "@6,40 "-%4d(1,2048)"&fg_dflt&fg_blue"|*****************************************"&fg_dflt&new_line
+&fg_dflt@7,4". Digital output for wire forward: "@7,40 "-%4d(1,2048)"&fg_dflt&fg_blue"|*************************************"&fg_dflt&new_line
+&fg_dflt@8,4". Digital output for wire backward: "@8,40 "-%4d(1,2048)"&fg_dflt&fg_blue"|************************************************"&fg_dflt&new_line
+&fg_dflt@9,4". Time for pulse wire: "@9,40 "-%4d(1,2048)"&fg_dflt&fg_blue"|**************************************************"&fg_dflt&new_line
+&fg_dflt@10,4". Number of impulses: "@10,40 "-%2d(1,10)"&fg_dflt&fg_blue"|*************************************************"&fg_dflt&new_line
+&fg_dflt@11,4". Digital output for error: "@11,40 "-%4d(1,2048)"&fg_dflt&fg_blue"|***************************************************"&fg_dflt&new_line
+&fg_dflt@12,4". Digital output for reset error: "@12,40 "-%4d(1,2048)"&fg_dflt&fg_blue"|***************************************************"&fg_dflt&new_line
+&fg_dflt@13,4". Start num. pos. reg.: "@13,40 "-%3d(1,300)"&fg_dflt&fg_blue"|***************************************************"&fg_dflt&new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+&fg_blue "********************************************************************************" &fg_dflt &new_line
+^tcps_fkey
+.endform
+$-,tcps_fkey
+&new_line
+&new_line
+&new_line
+&new_line
+&bg_red "EXIT" &new_line

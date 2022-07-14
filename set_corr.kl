@@ -1,0 +1,48 @@
+PROGRAM set_corr
+%COMMENT='Set correction'
+%NOLOCKGROUP
+%NOPAUSE=ERROR+COMMAND+TPENABLE
+%NOABORT=ERROR+COMMAND+TPENABLE
+VAR
+corr_num,status:INTEGER
+old_base: XYZWPR
+temp_base,new_base:POSITION
+conf:CONFIG
+real_v:REAL
+str_v:STRING[1]
+offset FROM search:ARRAY[50] OF VECTOR
+CONST
+ER_WARN = 0 -- warning constant for use in POST_ERR
+SUCCESS = 0 -- success constant
+--------------------------------------------------------------------
+--check status
+ROUTINE chk_stat (rec_stat: INTEGER)
+BEGIN
+IF (rec_stat <> SUCCESS) THEN -- if rec_stat is not SUCCESS then post the error
+POST_ERR (rec_stat,'', 0, ER_WARN) -- Post the error to the system.
+ENDIF
+END chk_stat
+-------------------------------------------------------------------- 
+--main program
+BEGIN
+
+$UTOOL=$MNUTOOL[1,$MNUTOOLNUM[1]]
+$UFRAME=$MNUFRAME[1,$MNUFRAMENUM[1]]
+
+GET_TPE_PRM(1,1,corr_num,real_v,str_v, status)
+chk_stat(status)
+
+old_base=$MNUFRAME[1,$MNUFRAMENUM[1]]
+
+SET_POS_REG(260,old_base,status)
+chk_stat(status)
+SET_PREG_CMT (260, 'Original base', status)
+chk_stat(status)
+
+temp_base=$MNUFRAME[1,$MNUFRAMENUM[1]]
+
+new_base=POS(temp_base.location.x + offset[corr_num].x,temp_base.location.y + offset[corr_num].y,temp_base.location.z + offset[corr_num].z,old_base.w,old_base.p,old_base.r,temp_base.config_data)
+
+$MNUFRAME[1,$MNUFRAMENUM[1]]=new_base
+
+END set_corr

@@ -1,0 +1,19 @@
+PROGRAM loadform
+VAR                                               
+STATUS:INTEGER
+BEGIN
+KCL ('LOAD DICT tcps tcps', STATUS)	
+KCL ('LOAD DICT mode mode', STATUS)		
+KCL ('LOAD DICT uuuu uuuu', STATUS)	
+KCL ('LOAD DICT xxxx xxxx', STATUS)
+KCL ('LOAD DICT xyxy xyxy', STATUS)
+KCL ('LOAD DICT orie orie', STATUS)
+KCL ('LOAD DICT exit exit', STATUS)
+KCL ('LOAD VARS tcps',STATUS)
+KCL ('LOAD VARS mode',STATUS)
+KCL ('LOAD VARS uuuu',STATUS)
+KCL ('LOAD VARS xxxx',STATUS)
+KCL ('LOAD VARS xyxy',STATUS)
+KCL ('LOAD VARS orie',STATUS)
+KCL ('LOAD VARS exit',STATUS)
+END loadform
