@@ -13,62 +13,52 @@ tool_temp_xyz:XYZWPR
 tool_ref,x_mes,xy_mes,tool_corr:ARRAY[10] OF POSITION
 temp_pos,u_pos,x_pos,xy_pos,ori_pos,old_tool,old_frame,ori_flange:POSITION
 a_x,b_xy,appr_x,waste_xy,x_ref,xy_ref,laser_base IN CMOS:ARRAY[10]OF POSITION
-x_cond,xy_cond,x_di,xy_di,wire_fwd,wire_bwd,pulse_wire,kol_impuls,error_out,error_reset,start_num_posreg IN CMOS:INTEGER
+x_cond,xy_cond,x_di,xy_di,wire_fwd,wire_bwd,pulse_wire,kol_impuls,error_out,error_reset,tool_preg IN CMOS:INTEGER
 log_str IN DRAM: ARRAY[9] OF STRING[40]
 corr_in_base,corr_in_flange:POSITION
 conf_base IN CMOS:CONFIG
 real_v,x_offset,xy_offset,offset_real:REAL
-old_vel,n_tool,max_offset,int_v,time_int,n,nn,nnn,STATUS:INTEGER 
-n_tool_str:STRING[2]
-time_str:STRING[30]
+old_vel,num_tool,max_offset,int_v,log_count,status:INTEGER 
+num_tool_str:STRING[2]
 offset:STRING[5]
 str_v,str_mode:STRING[12]
-t_mode,u_teach,x_teach,xy_teach,ori_teach,refer_ok,ref_or_no,x_flag,xy_flag,big_offset:BOOLEAN
+advance,refer_ok,ref_or_no,x_flag,xy_flag,big_offs_flag:BOOLEAN
 CONST
-ER_WARN = 0 -- warning constant for use in POST_ERR
-SUCCESS = 0 -- success constant
+ER_WARN = 0
+SUCCESS = 0
+cc_home = 137
+cc_clear_win = 128
+MAX_VEL = 100
+MAX_LOG = 9
 --------------------------------------------------------------------
 --check STATUS
 ROUTINE chk_stat (rec_stat: INTEGER)
 BEGIN
-IF (rec_stat <> SUCCESS) THEN -- if rec_stat is not SUCCESS then post the error
-POST_ERR (rec_stat,'', 0, ER_WARN) -- Post the error to the system.
+IF (rec_stat <> SUCCESS) THEN
+	POST_ERR (rec_stat,'', 0, ER_WARN) 
 ENDIF
 END chk_stat
 --------------------------------------------------------------------
 --write messages
 ROUTINE message(mes:STRING;ntool:INTEGER;mes0:STRING;mes1:STRING;mes2:STRING)
-CONST
-	cc_home = 137
-	cc_clear_win = 128
 BEGIN
-	WRITE TPERROR (CHR(cc_home) + CHR(cc_clear_win),mes,ntool,mes0,mes1,mes2)
+WRITE TPERROR (CHR(cc_home) + CHR(cc_clear_win),mes,ntool,mes0,mes1,mes2)
 END message
 --------------------------------------------------------------------
 --write messages
 ROUTINE messag(mes0:STRING;mes1:INTEGER;mes2:STRING)
-CONST
-	cc_home = 137
-	cc_clear_win = 128
 BEGIN
-	WRITE TPERROR (CHR(cc_home) + CHR(cc_clear_win),mes0,mes1,mes2)
+WRITE TPERROR (CHR(cc_home) + CHR(cc_clear_win),mes0,mes1,mes2)
 END messag
 --------------------------------------------------------------------
 --write messages
 ROUTINE messsag(mes:STRING)
-CONST
-	cc_home = 137
-	cc_clear_win = 128
 BEGIN
-	WRITE TPERROR (CHR(cc_home) + CHR(cc_clear_win),mes)
+WRITE TPERROR (CHR(cc_home) + CHR(cc_clear_win),mes)
 END messsag
 -------------------------------------------------------------------- 
 --move
 ROUTINE movel(posit:POSITION)
-VAR
-real_vel:REAL
-vel:INTEGER
-str_vel:STRING[5]
 BEGIN
 
 $MOTYPE=LINEAR
@@ -79,12 +69,13 @@ MOVE TO posit
 END movel
 -------------------------------------------------------------------- 
 --mode
-ROUTINE pr_or_in
+ROUTINE pr_or_in:BOOLEAN
 VAR
 value_array:ARRAY[1] OF STRING[12]
 inact_array:ARRAY[1] OF BOOLEAN
 change_array:ARRAY[1] OF BOOLEAN
 term_char:INTEGER
+t_mode:BOOLEAN
 BEGIN
 
 t_mode = FALSE
@@ -92,20 +83,22 @@ t_mode = FALSE
 FORCE_LINK(TP_PANEL,'CONFIG=single')
 FORCE_SPMENU(TP_PANEL, SPI_TPUSER2, 1)
 
-DISCTRL_FORM('mode',mode,value_array,inact_array,change_array,kc_func_key,1,term_char,STATUS)
-chk_stat(STATUS)
+DISCTRL_FORM('mode',mode,value_array,inact_array,change_array,kc_func_key,1,term_char,status)
+chk_stat(status)
 
 IF term_char = 140 THEN
-t_mode= TRUE	
+	t_mode= TRUE	
 ENDIF
 IF term_char = 141 THEN
-t_mode= FALSE
+	t_mode= FALSE
 ENDIF
+
+RETURN (t_mode)
 
 END pr_or_in
 -------------------------------------------------------------------- 
 --teach
-ROUTINE teach(ask:BOOLEAN;dict_name:STRING;ele_number:INTEGER;posn:POSITION)
+ROUTINE teach(dict_name:STRING;ele_number:INTEGER;posn:POSITION)
 VAR
 value_array:ARRAY[1] OF STRING[12]
 inact_array:ARRAY[1] OF BOOLEAN
@@ -113,28 +106,24 @@ change_array:ARRAY[1] OF BOOLEAN
 term_char:INTEGER
 BEGIN
 
-ask = FALSE
-
 FORCE_LINK(TP_PANEL,'CONFIG=single')
 FORCE_SPMENU(TP_PANEL, SPI_TPUSER2, 1)
 
-DISCTRL_FORM(dict_name,ele_number,value_array,inact_array,change_array,kc_func_key,1,term_char,STATUS)
-chk_stat(STATUS)
+DISCTRL_FORM(dict_name,ele_number,value_array,inact_array,change_array,kc_func_key,1,term_char,status)
+chk_stat(status)
 
 IF term_char = 141 THEN
-posn=CURPOS(0,0)
-posn.config_data=conf_base
-ask= TRUE	
+	posn=CURPOS(0,0)
+	posn.config_data=conf_base	
 ENDIF
 
 END teach
 -------------------------------------------------------------------- 
 --calculate laser base
 ROUTINE base_laser
-
 BEGIN
 	
-laser_base[n_tool]=FRAME(u_pos,x_pos,xy_pos)
+laser_base[num_tool]=FRAME(u_pos,x_pos,xy_pos)
 
 END base_laser
 -------------------------------------------------------------------- 
@@ -152,11 +141,11 @@ refer_ok = FALSE
 FORCE_LINK(TP_PANEL,'CONFIG=single')
 FORCE_SPMENU(TP_PANEL, SPI_TPUSER2, 1)
 
-DISCTRL_FORM('exit',exit,value_array,inact_array,change_array,kc_func_key,1,term_char,STATUS)
-chk_stat(STATUS)
+DISCTRL_FORM('exit',exit,value_array,inact_array,change_array,kc_func_key,1,term_char,status)
+chk_stat(status)
 
 IF term_char = 141 THEN
-refer_ok= TRUE
+	refer_ok= TRUE
 ENDIF
 
 END reference
@@ -180,7 +169,7 @@ value_array [7] = 'pulse_wire'
 value_array [8] = 'kol_impuls'
 value_array [9] = 'error_out'
 value_array [10] = 'error_reset'
-value_array [11] = 'start_num_posreg'
+value_array [11] = 'tool_preg'
 
 FORCE_LINK(TP_PANEL,'CONFIG=single')
 FORCE_SPMENU(TP_PANEL, SPI_TPUSER2, 1)
@@ -198,10 +187,10 @@ ROUTINE cross_pos_x
 BEGIN
 	
 IF ref_or_no=TRUE THEN
-x_ref[n_tool]=CURPOS(0,0)
+	x_ref[num_tool]=CURPOS(0,0)
 ENDIF
 IF ref_or_no=FALSE THEN
-x_mes[n_tool]=CURPOS(0,0)
+	x_mes[num_tool]=CURPOS(0,0)
 ENDIF
 
 END cross_pos_x
@@ -211,41 +200,37 @@ ROUTINE cross_pos_xy
 BEGIN
 	
 IF ref_or_no=TRUE THEN
-xy_ref[n_tool]=CURPOS(0,0)
+	xy_ref[num_tool]=CURPOS(0,0)
 ENDIF
 IF ref_or_no=FALSE THEN
-xy_mes[n_tool]=CURPOS(0,0)
+	xy_mes[num_tool]=CURPOS(0,0)
 ENDIF
 
 END cross_pos_xy
 --------------------------------------------------------------------
 --conditions
 ROUTINE cond_pos
-
 BEGIN
-x_flag=FALSE
-xy_flag=FALSE
+
 PURGE CONDITION [x_cond]
 PURGE CONDITION [xy_cond]
 		
 CONDITION[x_cond]:		
-WHEN DIN[x_di]=ON  DO
+	WHEN DIN[x_di]=ON  DO
+		
+	cross_pos_x
+	x_flag=TRUE
 	
-cross_pos_x
-x_flag=TRUE
-
-DISABLE CONDITION[x_cond]
-
+	DISABLE CONDITION[x_cond]
 ENDCONDITION
 
 CONDITION[xy_cond]:		
-WHEN DIN[xy_di]=ON  DO
+	WHEN DIN[xy_di]=ON  DO
+		
+	cross_pos_xy
+	xy_flag=TRUE
 	
-cross_pos_xy
-xy_flag=TRUE
-
-DISABLE CONDITION[xy_cond]
-
+	DISABLE CONDITION[xy_cond]
 ENDCONDITION
 
 ENABLE CONDITION[x_cond]				
@@ -257,8 +242,8 @@ END cond_pos
 ROUTINE calc_offset
 BEGIN
 	
-x_offset=xy_ref[n_tool].location.x-xy_mes[n_tool].location.x	
-xy_offset=x_ref[n_tool].location.y-x_mes[n_tool].location.y
+x_offset=xy_ref[num_tool].location.x-xy_mes[num_tool].location.x	
+xy_offset=x_ref[num_tool].location.y-x_mes[num_tool].location.y
 
 END calc_offset
 ---------------------------------------------------------------------
@@ -277,35 +262,72 @@ RETURN (offsetstr)
 END okrugl
 -------------------------------------------------------------------- 
 --calculation trajectory in world
-ROUTINE traject
+ROUTINE get_trajectory
 VAR
-appr_xx,a_xx,b_xxyy,waste_xxyy:POSITION
 oripos:XYZWPR
 BEGIN
 
 oripos=ori_pos
 
-a_x[n_tool]=POS((x_pos.location.x+u_pos.location.x)/2,(x_pos.location.y+u_pos.location.y)/2,(x_pos.location.z+u_pos.location.z)/2,oripos.w,oripos.p,oripos.r,conf_base)
+a_x[num_tool]=POS((x_pos.location.x+u_pos.location.x)/2,(x_pos.location.y+u_pos.location.y)/2,(x_pos.location.z+u_pos.location.z)/2,oripos.w,oripos.p,oripos.r,conf_base)
 
-a_x[n_tool]=INV(laser_base[n_tool]):a_x[n_tool]
-a_x[n_tool].location.x=a_x[n_tool].location.x+50
-a_x[n_tool].location.y=a_x[n_tool].location.y-50
-a_x[n_tool].location.z=a_x[n_tool].location.z+10
+a_x[num_tool]=INV(laser_base[num_tool]):a_x[num_tool]
+a_x[num_tool].location.x=a_x[num_tool].location.x+50
+a_x[num_tool].location.y=a_x[num_tool].location.y-50
+a_x[num_tool].location.z=a_x[num_tool].location.z+10
 
-appr_x[n_tool]=a_x[n_tool]
-appr_x[n_tool].location.z=appr_x[n_tool].location.z-45
+appr_x[num_tool]=a_x[num_tool]
+appr_x[num_tool].location.z=appr_x[num_tool].location.z-45
 
-b_xy[n_tool]=POS((xy_pos.location.x+u_pos.location.x)/2,(xy_pos.location.y+u_pos.location.y)/2,(xy_pos.location.z+u_pos.location.z)/2,oripos.w,oripos.p,oripos.r,conf_base)
+b_xy[num_tool]=POS((xy_pos.location.x+u_pos.location.x)/2,(xy_pos.location.y+u_pos.location.y)/2,(xy_pos.location.z+u_pos.location.z)/2,oripos.w,oripos.p,oripos.r,conf_base)
 
-b_xy[n_tool]=INV(laser_base[n_tool]):b_xy[n_tool]
-b_xy[n_tool].location.x=b_xy[n_tool].location.x-50
-b_xy[n_tool].location.y=b_xy[n_tool].location.y+50
-b_xy[n_tool].location.z=b_xy[n_tool].location.z+10
+b_xy[num_tool]=INV(laser_base[num_tool]):b_xy[num_tool]
+b_xy[num_tool].location.x=b_xy[num_tool].location.x-50
+b_xy[num_tool].location.y=b_xy[num_tool].location.y+50
+b_xy[num_tool].location.z=b_xy[num_tool].location.z+10
 
-waste_xy[n_tool]=b_xy[n_tool]
-waste_xy[n_tool].location.z=waste_xy[n_tool].location.z-45
+waste_xy[num_tool]=b_xy[num_tool]
+waste_xy[num_tool].location.z=waste_xy[num_tool].location.z-45
 
-END traject
+END get_trajectory
+-------------------------------------------------------------------- 
+--movement along a trajectory
+ROUTINE movement
+VAR
+count:INTEGER
+BEGIN
+
+advance=FALSE
+	
+WAIT FOR advance=FALSE	
+
+big_offs_flag=FALSE
+x_flag=FALSE
+xy_flag=FALSE
+	
+old_vel = $MCR.$GENOVERRIDE
+$MCR.$GENOVERRIDE = MAX_VEL
+messag('Velocity override', MAX_VEL,'%.')
+
+movel(appr_x[num_tool])
+PULSE DOUT[error_reset] FOR 500
+WAIT FOR NOT DOUT[error_reset]
+movel(a_x[num_tool])
+cond_pos
+FOR count=1 TO kol_impuls DO
+	PULSE DOUT[wire_fwd] FOR pulse_wire
+	WAIT FOR NOT DOUT[wire_fwd]
+ENDFOR
+movel(b_xy[num_tool])
+FOR count=1 TO kol_impuls DO
+	PULSE DOUT[wire_bwd] FOR pulse_wire
+	WAIT FOR NOT DOUT[wire_bwd]
+ENDFOR
+movel(waste_xy[num_tool])
+
+$MCR.$GENOVERRIDE = old_vel
+
+END movement
 -------------------------------------------------------------------- 
 --set tool correction
 ROUTINE set_tool_corr
@@ -314,293 +336,251 @@ tool_ref_temp:POSITION
 conf_tool:CONFIG
 BEGIN
 
-tool_temp_xyz=GET_POS_REG(start_num_posreg+2*n_tool-1,status)
-chk_stat(STATUS)
+tool_temp_xyz=GET_POS_REG(tool_preg+2*num_tool-2,status)
+chk_stat(status)
 conf_tool=$UTOOL.config_data
 tool_ref_temp=tool_temp_xyz
 
-tool_corr[n_tool]=POS(tool_ref_temp.location.x + corr_in_flange.location.x,tool_ref_temp.location.y + corr_in_flange.location.y,tool_ref_temp.location.z + corr_in_flange.location.z,tool_temp_xyz.w,tool_temp_xyz.p,tool_temp_xyz.r,conf_tool)
+tool_corr[num_tool]=POS(tool_ref_temp.location.x + corr_in_flange.location.x,tool_ref_temp.location.y + corr_in_flange.location.y,tool_ref_temp.location.z + corr_in_flange.location.z,tool_temp_xyz.w,tool_temp_xyz.p,tool_temp_xyz.r,conf_tool)
 
-$MNUTOOL[1,n_tool]=tool_corr[n_tool]
-tool_temp_xyz=tool_corr[n_tool]
+$MNUTOOL[1,num_tool]=tool_corr[num_tool]
+tool_temp_xyz=tool_corr[num_tool]
 
-SET_POS_REG(start_num_posreg+1+2*n_tool-1,tool_temp_xyz,status)
-chk_stat(STATUS)
-SET_PREG_CMT (start_num_posreg+1+2*n_tool-1, 'Tool'+ n_tool_str+ ' mes.', status)
-chk_stat(STATUS)
+SET_POS_REG(tool_preg+2*num_tool-1,tool_temp_xyz,status)
+chk_stat(status)
+SET_PREG_CMT (tool_preg+2*num_tool-1, 'Tool'+ num_tool_str+ ' mes.', status)
+chk_stat(status)
 
 END set_tool_corr
 ---------------------------------------------------------------------
 --write log
 ROUTINE write_log
-
+VAR
+count,time_int:INTEGER 
+time_str:STRING[30]
 BEGIN
 
-IF UNINIT(nnn) THEN
-nnn=1
+IF UNINIT(log_count) THEN
+	log_count=1
 ENDIF	
+
+GET_TIME(time_int)
+CNV_TIME_STR(time_int, time_str)
 
 IF ref_or_no =TRUE THEN
-
-log_str[nnn]='Tool'+n_tool_str+' reference OK. '+time_str
-
-messag('Tool',n_tool,' reference OK.')
-	
-ENDIF	
-
-IF ref_or_no =FALSE THEN
-
-IF offset_real=0 THEN 
-	
-log_str[nnn]='Tool'+n_tool_str+' is OK.'+time_str	
-
-messag('Tool',n_tool,' is OK.')
-
+	log_str[log_count]='Tool'+num_tool_str+' reference OK. '+time_str
+	messag('Tool',num_tool,' reference OK.')	
 ELSE
+	IF offset_real=0 THEN 
+		log_str[log_count]='Tool'+num_tool_str+' is OK.'+time_str	
+		messag('Tool',num_tool,' is OK.')
+	ELSE	
+		IF offset_real<=max_offset THEN				
+			log_str[log_count]='Tool'+num_tool_str+' offset ='+offset+' mm. '+time_str
+			message('Tool',num_tool,' offset =',offset,' mm.')
+		ELSE
+			log_str[log_count]='Tool'+num_tool_str+' offset ='+offset+' mm. '+time_str
+			message('Tool',num_tool,' offset is big,',offset,' mm.')	
+		ENDIF
+	ENDIF
+ENDIF
+
+WRITE(CHR(cc_home) + CHR(cc_clear_win))
 	
-IF offset_real<=max_offset THEN		
-		
-log_str[nnn]='Tool'+n_tool_str+' offset ='+offset+' mm. '+time_str
-
-message('Tool',n_tool,' offset =',offset,' mm.')
-
+IF log_count<MAX_LOG THEN	
+	FOR count=log_count DOWNTO 1 DO
+		WRITE(log_str[count],CR)
+	ENDFOR
 ELSE
-	
-log_str[nnn]='Tool'+n_tool_str+' offset ='+offset+' mm. '+time_str
-	
-message('Tool',n_tool,' offset is big,',offset,' mm.')	
-
+	FOR count=MAX_LOG DOWNTO 1 DO
+		WRITE(log_str[count],CR)
+	ENDFOR
+	FOR count=1 TO log_count-1 DO
+		log_str[count]=log_str[count+1]	
+	ENDFOR
 ENDIF
 
-ENDIF
+log_count=log_count+1
 
-ENDIF
-
-WRITE(CHR(137)+CHR(128))
-	
-IF nnn<9 THEN	
-FOR nn=nnn DOWNTO 1 DO
-WRITE(log_str[nn],CR)
-ENDFOR
-ELSE
-
-FOR nn=9 DOWNTO 1 DO
-WRITE(log_str[nn],CR)
-ENDFOR
-
-FOR nn=1 TO nnn-1 DO
-log_str[nn]=log_str[nn+1]	
-ENDFOR
-
-ENDIF
-
-nnn=nnn+1
-
-IF nnn>=9 THEN
-nnn=9	
+IF log_count>=MAX_LOG THEN
+	log_count=MAX_LOG	
 ENDIF
 
 END write_log
+--------------------------------------------------------------------
+--end tcp check
+ROUTINE end_check
+BEGIN
+FORCE_LINK(TP_PANEL,'CONFIG=double')
+FORCE_SPMENU(TP_PANEL, SPI_TPTCH, 1)
+END end_check
+--------------------------------------------------------------------
+--check parameter
+ROUTINE check_param
+BEGIN
+
+IF UNINIT(x_cond) OR UNINIT(xy_cond) OR UNINIT(x_di) OR UNINIT(xy_di) OR UNINIT(wire_fwd) OR UNINIT(wire_bwd) OR UNINIT(pulse_wire) OR UNINIT(kol_impuls) OR UNINIT(error_out) OR UNINIT(error_reset) OR UNINIT(tool_preg)THEN
+	setup
+ENDIF
+IF UNINIT(x_cond) OR UNINIT(xy_cond) OR UNINIT(x_di) OR UNINIT(xy_di) OR UNINIT(wire_fwd) OR UNINIT(wire_bwd) OR UNINIT(pulse_wire) OR UNINIT(kol_impuls) OR UNINIT(error_out) OR UNINIT(error_reset) OR UNINIT(tool_preg)THEN
+	messsag('Set parameters.')
+	PAUSE
+ENDIF	
+
+END check_param
 -------------------------------------------------------------------- 
 --main program
 BEGIN
 	
-DELAY 1000
-IF UNINIT(x_di) OR UNINIT(xy_di) OR UNINIT(wire_fwd) OR UNINIT(wire_bwd) OR UNINIT(pulse_wire) OR UNINIT(kol_impuls) OR UNINIT(error_out) OR UNINIT(error_reset) THEN
-setup
-ENDIF
-IF UNINIT(x_di) OR UNINIT(xy_di) OR UNINIT(wire_fwd) OR UNINIT(wire_bwd) OR UNINIT(pulse_wire) OR UNINIT(kol_impuls) OR UNINIT(error_out) OR UNINIT(error_reset) THEN
-messsag('Set parameters.')
-ABORT
-ENDIF
+DELAY 500
+
+check_param
 
 ref_or_no=FALSE
-big_offset=FALSE
+
 DOUT[error_out]=OFF
-
-GET_TPE_PRM(2,3,max_offset,real_v,str_v, STATUS)
-chk_stat(STATUS)
-	
-GET_TPE_PRM(1,3,int_v,real_v,str_mode, STATUS)
-chk_stat(STATUS)
-
-n_tool=$MNUTOOLNUM[1]
-
-CNV_INT_STR(n_tool,1,0,n_tool_str)
-
-IF str_mode='INSTALLATION' THEN
-
-pr_or_in
-
-IF t_mode=TRUE THEN
-
-ref_or_no=TRUE
-
-temp_pos=GET_POS_REG(start_num_posreg,status)
-chk_stat(STATUS)
-
-conf_base=temp_pos.config_data
-
-IF n_tool>=1 THEN
-$UTOOL=$MNUTOOL[1,n_tool]
-ENDIF                                                                                                                                                                                                                                                                                                                                         
-
-old_frame=$UFRAME
-$UFRAME=$MOR_GRP[1].$NILPOS
-
-tool_ref[n_tool]=$UTOOL
-tool_temp_xyz=tool_ref[n_tool]
-
-SET_POS_REG(start_num_posreg+2*n_tool-1,tool_temp_xyz,status)
-chk_stat(STATUS)
-SET_PREG_CMT (start_num_posreg+2*n_tool-1, 'Tool'+ n_tool_str+ ' ref.', status)
-chk_stat(STATUS)
-
-teach(u_teach,'uuuu',uuuu,u_pos)
-teach(x_teach,'xxxx',xxxx,x_pos)
-teach(xy_teach,'xyxy',xyxy,xy_pos)
-teach(ori_teach,'orie',orie,ori_pos)
-
-reference
-
-base_laser
-
-laser_base[n_tool].config_data=conf_base
-
-$UFRAME=laser_base[n_tool]
-
-traject
-
-ELSE
-
-messsag('Training not complete.')
-	
-GOTO no_inst	
-	
-ENDIF
-
-ENDIF
-
-big_offs::
-
-IF big_offset=TRUE THEN
-$MNUTOOL[1,n_tool]=GET_POS_REG(start_num_posreg+2*n_tool-1,status)
-chk_stat(STATUS)	
-messsag('TCP offset is too big.')
-DOUT[error_out]=ON
-PAUSE	
-DOUT[error_out]=OFF
-ENDIF	
-
-again::
-
-$MNUTOOL[1,n_tool]=GET_POS_REG(start_num_posreg+2*n_tool-1,status)
-chk_stat(STATUS)
-
-IF n_tool>=1 THEN
-$UTOOL=$MNUTOOL[1,n_tool]
-ENDIF
-
-old_frame=$UFRAME
-$UFRAME=laser_base[n_tool]
-
-old_vel = $MCR.$GENOVERRIDE
-$MCR.$GENOVERRIDE = 100
-messsag('Velocity override 100%. ')
-
-movel(appr_x[n_tool])
 PULSE DOUT[error_reset] FOR 500
 WAIT FOR NOT DOUT[error_reset]
-movel(a_x[n_tool])
-cond_pos
-FOR n=1 TO kol_impuls DO
-PULSE DOUT[wire_fwd] FOR pulse_wire
-WAIT FOR NOT DOUT[wire_fwd]
-ENDFOR
-movel(b_xy[n_tool])
-FOR n=1 TO kol_impuls DO
-PULSE DOUT[wire_bwd] FOR pulse_wire
-WAIT FOR NOT DOUT[wire_bwd]
-ENDFOR
-movel(waste_xy[n_tool])
 
-$MCR.$GENOVERRIDE = old_vel
+GET_TPE_PRM(2,1,max_offset,real_v,str_v, status)
+chk_stat(status)
+GET_TPE_PRM(1,3,int_v,real_v,str_mode, status)
+chk_stat(status)
 
-GET_TIME(time_int) -- Get the system time
-CNV_TIME_STR(time_int, time_str)
+num_tool=$MNUTOOLNUM[1]
 
-IF x_flag=FALSE THEN
+CNV_INT_STR(num_tool,1,0,num_tool_str)
 
-messsag('Laser -X- not crossed. ')
-PAUSE	
-GOTO again
-ENDIF	
+IF str_mode='INSTALLATION' THEN
+	IF pr_or_in=TRUE THEN
+		ref_or_no=TRUE
 
-IF xy_flag=FALSE THEN
+		temp_pos=CURPOS(0,0)
 
-messsag('Laser -XY- not crossed. ')
-PAUSE	
-GOTO again	
+		conf_base=temp_pos.config_data
+
+		IF num_tool>=1 THEN
+			$UTOOL=$MNUTOOL[1,num_tool]
+		ENDIF                                                                                                                                                                                                                                                                                                                                         
+
+		old_frame=$UFRAME
+		$UFRAME=$MOR_GRP[1].$NILPOS
+
+		tool_ref[num_tool]=$UTOOL
+		tool_temp_xyz=tool_ref[num_tool]
+
+		SET_POS_REG(tool_preg+2*num_tool-2,tool_temp_xyz,status)
+		chk_stat(status)
+		SET_PREG_CMT (tool_preg+2*num_tool-2, 'Tool'+ num_tool_str+ ' ref.', status)
+		chk_stat(status)
+
+		teach('uuuu',uuuu,u_pos)
+		teach('xxxx',xxxx,x_pos)
+		teach('xyxy',xyxy,xy_pos)
+		teach('orie',orie,ori_pos)
+
+		reference
+		base_laser
+
+		laser_base[num_tool].config_data=conf_base
+		$UFRAME=laser_base[num_tool]
+
+		get_trajectory
+
+	ELSE
+		messsag('Training not complete.')
+		end_check
+		RETURN	
+	ENDIF
 ENDIF
 
-IF ref_or_no =TRUE THEN
+IF (str_mode='INSTALLATION') OR (str_mode='PRODUCTION') THEN
+
+	REPEAT
+
+		$MNUTOOL[1,num_tool]=GET_POS_REG(tool_preg+2*num_tool-2,status)
+		chk_stat(status)
 	
-write_log
+		IF num_tool>=1 THEN
+			$UTOOL=$MNUTOOL[1,num_tool]
+		ENDIF
 	
-ENDIF	
-
-IF ref_or_no =FALSE THEN
+		old_frame=$UFRAME
+		$UFRAME=laser_base[num_tool]
+		
+		movement
+		
+		IF (x_flag=FALSE) AND (xy_flag=FALSE) THEN
+			PURGE CONDITION [x_cond]
+			PURGE CONDITION [xy_cond]
+			messsag('Lasers -X- and -XY- not crossed. ')
+			PULSE DOUT[error_out] FOR 500
+			WAIT FOR NOT DOUT[error_out]
+			PAUSE	
+		ELSE
+			IF x_flag=FALSE THEN
+				PURGE CONDITION [x_cond]
+				messsag('Laser -X- not crossed. ')
+				PULSE DOUT[error_out] FOR 500
+				WAIT FOR NOT DOUT[error_out]
+				PAUSE	
+			ENDIF	
+		
+			IF xy_flag=FALSE THEN
+				PURGE CONDITION [xy_cond]
+				messsag('Laser -XY- not crossed. ')
+				PULSE DOUT[error_out] FOR 500
+				WAIT FOR NOT DOUT[error_out]
+				PAUSE	
+			ENDIF
+		ENDIF
+		
+		IF ref_or_no =TRUE THEN	
+			write_log	
+		ELSE
+			calc_offset
+			offset=okrugl(x_offset,xy_offset)
+			IF offset_real<=max_offset THEN
 	
-calc_offset
-
-offset=okrugl(x_offset,xy_offset)
-
-IF offset_real<=max_offset THEN		
-
-old_tool=$UTOOL
-
-$UTOOL=$MOR_GRP[1].$NILPOS
-
-ori_flange=CURPOS(0,0)
-
-ori_flange.location.x=0
-ori_flange.location.y=0
-ori_flange.location.z=0
-
-corr_in_base=POS(x_offset,xy_offset,0,0,0,0,conf_base)
-
-corr_in_flange=INV(ori_flange):corr_in_base
-
-set_tool_corr
-
-write_log
+				old_tool=$UTOOL
+		
+				$UTOOL=$MOR_GRP[1].$NILPOS
+		
+				ori_flange=CURPOS(0,0)
+				ori_flange.location.x=0
+				ori_flange.location.y=0
+				ori_flange.location.z=0
+		
+				corr_in_base=POS(x_offset,xy_offset,0,0,0,0,conf_base)
+				corr_in_flange=INV(ori_flange):corr_in_base
+		
+				set_tool_corr
+				write_log
+			
+				$UTOOL=old_tool
+				$MCR.$GENOVERRIDE = old_vel
+			
+			ELSE	
+				big_offs_flag=TRUE
+				$UTOOL=old_tool
+				$UFRAME=old_frame
+				$MCR.$GENOVERRIDE = old_vel
+				
+				write_log
+				
+				$MNUTOOL[1,num_tool]=GET_POS_REG(tool_preg+2*num_tool-2,status)
+				chk_stat(status)	
+				messsag('TCP offset is too big.')
+				PULSE DOUT[error_out] FOR 500
+				WAIT FOR NOT DOUT[error_out]
+				PAUSE	
+			ENDIF
+		ENDIF	
+		
+		$UFRAME=old_frame
 	
-big_offset=FALSE
-
-$UTOOL=old_tool
-
-$MCR.$GENOVERRIDE = old_vel
-	
-ELSE
-
-write_log
-
-big_offset=TRUE
-
-$UTOOL=old_tool
-$UFRAME=old_frame
-
-GOTO big_offs
+	UNTIL x_flag AND xy_flag AND NOT big_offs_flag
 
 ENDIF
-
-ENDIF	
-
-$UFRAME=old_frame
-
-no_inst::
-	
-FORCE_LINK(TP_PANEL,'CONFIG=double')
-FORCE_SPMENU(TP_PANEL, SPI_TPTCH, 1)
 
 END TCP_CHECK
