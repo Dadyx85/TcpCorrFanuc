@@ -310,6 +310,9 @@ BEGIN
 	ENDFOR
 	movel(waste_xy[num_tool])
 	
+	PURGE CONDITION [x_cond]
+	PURGE CONDITION [xy_cond]
+
 	$MCR.$GENOVERRIDE = old_vel
 END movement
 -------------------------------------------------------------------- 
@@ -530,14 +533,9 @@ BEGIN
 							$MNUTOOL[1,num_tool]=GET_POS_REG(tool_preg+2*num_tool-2,status)
 							chk_stat(status)	
 							messsag('TCP offset is too big.')
-							PULSE DOUT[error_out] FOR 500
-							WAIT FOR NOT DOUT[error_out]
-							PAUSE	
 						ENDIF
 					ENDIF
 				ELSE
-					PURGE CONDITION [x_cond]
-					PURGE CONDITION [xy_cond]
 					IF (x_flag=FALSE) AND (xy_flag=FALSE) THEN
 						messsag('Lasers -X- and -XY- not crossed. ')
 					ELSE
@@ -548,13 +546,15 @@ BEGIN
 							messsag('Laser -XY- not crossed. ')
 						ENDIF
 					ENDIF	
-					$UFRAME=old_frame
-					PULSE DOUT[error_out] FOR 500
-					WAIT FOR NOT DOUT[error_out]	
-					PAUSE			
 				ENDIF
 				
 				$UFRAME=old_frame
+				
+				IF (x_flag=FALSE) OR (xy_flag=FALSE) OR (big_offs_flag) THEN
+					PULSE DOUT[error_out] FOR 500
+					WAIT FOR NOT DOUT[error_out]
+					PAUSE
+				ENDIF
 			
 			UNTIL x_flag AND xy_flag AND NOT big_offs_flag
 		
