@@ -535,18 +535,16 @@ BEGIN
 							PAUSE	
 						ENDIF
 					ENDIF
-				ELSE				
+				ELSE
+					PURGE CONDITION [x_cond]
+					PURGE CONDITION [xy_cond]
 					IF (x_flag=FALSE) AND (xy_flag=FALSE) THEN
-						PURGE CONDITION [x_cond]
-						PURGE CONDITION [xy_cond]
 						messsag('Lasers -X- and -XY- not crossed. ')
 					ELSE
 						IF x_flag=FALSE THEN
-							PURGE CONDITION [x_cond]
 							messsag('Laser -X- not crossed. ')
 						ENDIF	
 						IF xy_flag=FALSE THEN
-							PURGE CONDITION [xy_cond]
 							messsag('Laser -XY- not crossed. ')
 						ENDIF
 					ENDIF	
